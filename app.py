@@ -1,63 +1,85 @@
 import streamlit as st
-import imageio
+import cv2
+from ultralytics import YOLO
+import numpy as np
+from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
 import time
-import cv2  # Only for frame conversion if needed
-import os
 
-# Function to initialize the webcam reader
-def start_webcam():
-    try:
-        reader = imageio.get_reader('<video0>', 'ffmpeg')  # '<video0>' for default webcam (adjust for your OS if needed)
-        return reader
-    except Exception as e:
-        st.error(f"Error starting webcam: {e}")
-        return None
+st.title("Real-Time YOLOv8 Detection")
 
-# Main app
-st.title("Real-Time Utensil Detection")
+if "run" not in st.session_state:
+    st.session_state.run = False
 
-# Placeholder for the video feed
-frame_placeholder = st.empty()
+model_selection = st.selectbox(
+    'Choose a model:',
+    ['yolov8n', 'yolo11n']
+)
 
-# Button to start/stop
-if 'reader' not in st.session_state:
-    st.session_state.reader = None
-    st.session_state.running = False
+def list_cameras():
+    devices = AVCaptureDevice.devicesWithMediaType_(AVMediaTypeVideo)
+    cams = []
+    increment = 1
 
-if st.button("Start Webcam") and not st.session_state.running:
-    st.session_state.reader = start_webcam()
-    if st.session_state.reader:
-        st.session_state.running = True
-        st.rerun()  # Rerun to enter the loop
+    for d in devices:
+        # You can query more properties if needed
+        name = d.localizedName()
 
-if st.button("Stop Webcam") and st.session_state.running:
-    if st.session_state.reader:
-        st.session_state.reader.close()
-    del st.session_state.reader
-    st.session_state.running = False
-    frame_placeholder.empty()  # Clear the display
-    st.rerun()
+        cams.append(f"[{increment}] {name}")
 
-# Real-time loop (only runs if started)
-if st.session_state.running and 'reader' in st.session_state:
-    while st.session_state.running:
-        try:
-            # Grab a frame
-            frame = st.session_state.reader.get_next_data()  # NumPy array (RGB)
+        increment += 1
+    return cams
 
-            frame = cv2.flip(frame, 1)
+cameras = list_cameras()
 
-            # Display the frame (resize for UI)
-            frame_placeholder.image(frame, channels="RGB", width=200, use_container_width=False)
+camera_selection = st.selectbox(
+    'Choose a camera',
+    cameras
+)
 
-            #time.sleep(0.001)  # ~20 FPS to avoid CPU overload
-        except Exception as e:
-            st.warning(f"Error in loop: {e}")
-            break  # Exit on error
+# Run and Stop buttons
+col1, col2 = st.columns(2)
 
-    # Cleanup if loop exits
-    if 'reader' in st.session_state:
-        st.session_state.reader.close()
-        del st.session_state.reader
-    st.session_state.running = False
-    frame_placeholder.empty()
+with col1:
+    if st.button("Run"):
+        st.session_state.run = True
+
+with col2:
+    if st.button("Stop"):
+        st.session_state.run = False
+
+if  st.session_state.run and camera_selection and model_selection:
+    model = YOLO(model_selection)
+
+    camera_index = cameras.index(camera_selection)
+
+    # Start video capture
+    cap = cv2.VideoCapture(camera_index)
+
+    # Streamlit placeholder for video
+    frame_window = st.image([])
+
+    while st.session_state.run and cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            st.write("Failed to grab frame")
+            break
+
+        if camera_index == 0: frame = cv2.flip(frame, 1)
+
+        # Run YOLO detection
+        results = model.predict(frame, imgsz=320, conf=0.5)
+
+        # Annotate frame
+        annotated_frame = results[0].plot()
+
+        # Convert BGR to RGB
+        frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+
+        # Show frame
+        frame_window.image(frame_rgb)
+
+        # Add small delay to prevent UI freeze
+        time.sleep(0.03)
+
+    cap.release()
+    st.write("Camera stopped.")
