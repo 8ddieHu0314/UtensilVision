@@ -3,17 +3,15 @@ import cv2
 from ultralytics import YOLO
 import numpy as np
 from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
-import time
+from inference import get_model
+import supervision as sv
+import cv2
+
 
 st.title("Real-Time YOLOv8 Detection")
 
 if "run" not in st.session_state:
     st.session_state.run = False
-
-model_selection = st.selectbox(
-    'Choose a model:',
-    ['yolov8n', 'yolo11n']
-)
 
 def list_cameras():
     devices = AVCaptureDevice.devicesWithMediaType_(AVMediaTypeVideo)
@@ -47,8 +45,8 @@ with col2:
     if st.button("Stop"):
         st.session_state.run = False
 
-if  st.session_state.run and camera_selection and model_selection:
-    model = YOLO(model_selection)
+if  st.session_state.run and camera_selection:
+    model = get_model(model_id="utensils-jabsv/2")
 
     camera_index = cameras.index(camera_selection)
 
@@ -57,6 +55,15 @@ if  st.session_state.run and camera_selection and model_selection:
 
     # Streamlit placeholder for video
     frame_window = st.image([])
+
+    box_annotator = sv.BoxAnnotator(
+        thickness=3,
+    )
+    
+    label_annotator = sv.LabelAnnotator(
+        text_thickness=2,
+        text_scale=1.2
+    )
 
     while st.session_state.run and cap.isOpened():
         ret, frame = cap.read()
@@ -67,19 +74,23 @@ if  st.session_state.run and camera_selection and model_selection:
         if camera_index == 0: frame = cv2.flip(frame, 1)
 
         # Run YOLO detection
-        results = model.predict(frame, imgsz=320, conf=0.5)
+        results = model.infer(
+            frame, 
+            imgzs=640, 
+            confidence=0.6, 
+            iou_threshold=0.75
+        )[0]
 
-        # Annotate frame
-        annotated_frame = results[0].plot()
+        detections = sv.Detections.from_inference(results)
 
-        # Convert BGR to RGB
+        annotated_frame = box_annotator.annotate(scene=frame.copy(), detections=detections)
+        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections)
+
+        # Convert BGR to RGB for display in Streamlit
         frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
-        # Show frame
+        # Show the frame
         frame_window.image(frame_rgb)
-
-        # Add small delay to prevent UI freeze
-        time.sleep(0.03)
 
     cap.release()
     st.write("Camera stopped.")
