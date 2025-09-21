@@ -38,7 +38,6 @@ def image_detection_page():
     if "run" not in st.session_state:
         st.session_state.run = False
 
-    # Simplified camera selection
     camera_selection = st.selectbox(
         'Choose a camera',
         ["0 - MacBook Camera", "1 - Phone Camera"]
