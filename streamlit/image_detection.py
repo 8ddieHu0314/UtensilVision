@@ -6,8 +6,8 @@ def run_detection(model, frame):
     results = model.infer(
         frame, 
         imgzs=640, 
-        confidence=0.2, 
-        iou_threshold=0.9
+        confidence=0.65, 
+        iou_threshold=0.7
     )[0]
 
     detections = sv.Detections.from_inference(results)
