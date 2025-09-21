@@ -23,7 +23,7 @@ Utensil Vision utilizes fine-tuned YOLOv11 model to detect forks, knives, and sp
 1. Run the sorting application:
 
     ```bash
-    streamlit run src/app.py
+    streamlit run app.py
     ```
 
 3. The app will:
