@@ -6,6 +6,7 @@ from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
 from inference import get_model
 import supervision as sv
 import cv2
+from video_writer import VideoWriter
 
 
 st.title("Real-Time YOLOv8 Detection")
@@ -34,6 +35,11 @@ camera_selection = st.selectbox(
     cameras
 )
 
+model_selection = st.selectbox(
+    'Choose a model',
+    [2, 4, 5]
+)
+
 # Run and Stop buttons
 col1, col2 = st.columns(2)
 
@@ -46,15 +52,16 @@ with col2:
         st.session_state.run = False
 
 if  st.session_state.run and camera_selection:
-    model = get_model(model_id="utensils-jabsv/2")
+    model = get_model(model_id="utensils-jabsv/" + str(model_selection))
 
     camera_index = cameras.index(camera_selection)
 
     # Start video capture
     cap = cv2.VideoCapture(camera_index)
 
-    # Streamlit placeholder for video
     frame_window = st.image([])
+
+    count_placeholder = st.empty()
 
     box_annotator = sv.BoxAnnotator(
         thickness=3,
@@ -64,6 +71,9 @@ if  st.session_state.run and camera_selection:
         text_thickness=2,
         text_scale=1.2
     )
+
+    # Class names mapping
+    class_names = {0: "Fork", 1: "Knife", 2: "Fork"}
 
     while st.session_state.run and cap.isOpened():
         ret, frame = cap.read()
@@ -77,20 +87,43 @@ if  st.session_state.run and camera_selection:
         results = model.infer(
             frame, 
             imgzs=640, 
-            confidence=0.6, 
-            iou_threshold=0.75
+            confidence=0.5, 
+            iou_threshold=0.6
         )[0]
 
         detections = sv.Detections.from_inference(results)
+        detections.class_id = np.where(detections.class_id == 2, 0, detections.class_id)
+        detections.class_id = np.where(detections.class_id == 1, 0, detections.class_id)
+
+        labels = [class_names.get(cls, str(cls)) for cls in detections.class_id]
+
+        # Count objects by class
+        fork_count = len(detections[detections.class_id == 0])
+        knife_count = len(detections[detections.class_id == 0])
+        spoon_count = len(detections[detections.class_id == 0])
 
         annotated_frame = box_annotator.annotate(scene=frame.copy(), detections=detections)
-        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
 
         # Convert BGR to RGB for display in Streamlit
         frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
         # Show the frame
         frame_window.image(frame_rgb)
+        
+        # Update count display
+        with count_placeholder.container():
+            st.markdown("### Utensil Count")
+            col_fork, col_knife, col_spoon = st.columns(3)
+            
+            with col_fork:
+                st.metric("Forks", fork_count)
+            with col_knife:
+                st.metric("Knives", knife_count)
+            with col_spoon:
+                st.metric("Spoons", spoon_count)
+
+            st.markdown(f"**Total:** {fork_count + knife_count + spoon_count}")
 
     cap.release()
     st.write("Camera stopped.")
