@@ -33,4 +33,7 @@ Utensil Vision utilizes fine-tuned YOLOv11 model to detect forks, knives, and sp
 
 ## Model
 
-The dataset used and the model versions can be found [here](https://app.roboflow.com/genai-gkvsb/utensils-jabsv/models)
+The model is trained on Roboflow.
+
+The weights for the final model can be found at 
+The utensil dataset used and the model versions can be found [here](https://app.roboflow.com/genai-gkvsb/utensils-jabsv/models)
