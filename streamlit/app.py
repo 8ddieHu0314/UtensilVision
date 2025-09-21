@@ -1,7 +1,6 @@
 import streamlit as st
 import cv2
 from ultralytics import YOLO
-import numpy as np
 from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
 from inference import get_model
 import supervision as sv
