@@ -1,8 +1,6 @@
 streamlit
 opencv-python
-ultralytics
 numpy
-pyobjc-framework-AVFoundation
 supervision
 pandas
 inference

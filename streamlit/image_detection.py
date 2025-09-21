@@ -1,19 +1,19 @@
-from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
+#from AVFoundation import AVCaptureDevice, AVMediaTypeVideo
 from inference import get_model
 import cv2
 import supervision as sv
 import numpy as np
 
-def list_cameras():
-    devices = AVCaptureDevice.devicesWithMediaType_(AVMediaTypeVideo)
-    cams = []
-    increment = 1
+# def list_cameras():
+#     devices = AVCaptureDevice.devicesWithMediaType_(AVMediaTypeVideo)
+#     cams = []
+#     increment = 1
 
-    for d in devices:
-        name = d.localizedName()
-        cams.append(f"[{increment}] {name}")
-        increment += 1
-    return cams
+#     for d in devices:
+#         name = d.localizedName()
+#         cams.append(f"[{increment}] {name}")
+#         increment += 1
+#     return cams
 
 def run_detection(camera_selection, model_selection, cameras, frame_window, count_placeholder, run_flag):
     model = get_model(model_id="utensils-jabsv/" + str(model_selection))
