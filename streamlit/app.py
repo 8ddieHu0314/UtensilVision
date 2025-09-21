@@ -4,6 +4,7 @@ from inference import get_model
 import supervision as sv
 import random
 import pandas as pd
+from image_detection import run_detection
 
 def generate_sample_data(dining_halls):
     data = {}
@@ -73,8 +74,6 @@ def image_detection_page():
         box_annotator = sv.BoxAnnotator(thickness=3)
         label_annotator = sv.LabelAnnotator(text_thickness=2, text_scale=1.2)
 
-        class_names = {0: "Fork", 1: "Knife", 2: "Spoon"}
-
         while st.session_state.run and cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -84,19 +83,7 @@ def image_detection_page():
             if camera_index == 0:
                 frame = cv2.flip(frame, 1)
 
-            results = model.infer(
-                frame, 
-                imgzs=640, 
-                confidence=0.6, 
-                iou_threshold=0.4
-            )[0]
-
-            detections = sv.Detections.from_inference(results)
-            labels = [class_names.get(cls, str(cls)) for cls in detections.class_id]
-
-            fork_count = len(detections[detections.class_id == 0])
-            knife_count = len(detections[detections.class_id == 1])
-            spoon_count = len(detections[detections.class_id == 2])
+            fork_count, knife_count, spoon_count, labels, detections = run_detection(model, frame)
 
             annotated_frame = box_annotator.annotate(scene=frame.copy(), detections=detections)
             annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
