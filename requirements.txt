@@ -108,12 +108,6 @@ PyJWT==2.10.1
 pylibsrtp==0.12.0
 pylogix==1.0.5
 pymodbus==3.8.3
-pyobjc-core==11.1
-pyobjc-framework-AVFoundation==11.1
-pyobjc-framework-Cocoa==11.1
-pyobjc-framework-CoreAudio==11.1
-pyobjc-framework-CoreMedia==11.1
-pyobjc-framework-Quartz==11.1
 pyOpenSSL==25.3.0
 pyparsing==3.2.5
 pytest==8.4.2
